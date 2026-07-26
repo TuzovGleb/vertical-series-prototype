@@ -68,11 +68,67 @@ def encode(src: Path, dest: Path) -> bool:
     return False
 
 
-def poster(src: Path, dest: Path):
+SUB_TOP, SUB_BOTTOM = 0.58, 0.93   # полоса, где у исходников сидят субтитры
+POSTER_TRIM = 0.92                 # сколько высоты оставляем на обложке
+CLEAN_ENOUGH = 0.0015              # доля почти-белых пикселей, считаемая «чисто»
+
+# Нижние 8% отрезаются, а в замер не входят: у части исходников там намертво
+# вшит дисклеймер платформы. Подбором кадра его не убрать — он в каждом кадре,
+# — зато он мешал бы выбирать по-настоящему чистые кадры.
+
+
+def subtitle_load(src: Path, at: float) -> float:
+    """Доля почти-белых пикселей в полосе субтитров — прокси наличия текста.
+
+    Субтитры вшиты в картинку: белые буквы с тёмной обводкой. Если в полосе
+    почти нет ярких пикселей, значит в этот момент реплики на экране нет."""
+    y0 = int(H * SUB_TOP)
+    height = int(H * SUB_BOTTOM) - y0
+    # Полосу нельзя сильно ужимать: субтитры — тонкие белые штрихи, при
+    # уменьшении до пары сотен пикселей они усредняются с тёмным фоном в серый
+    # и перестают отличаться от чистого кадра. Меряем близко к оригиналу.
+    r = subprocess.run([
+        FFMPEG, "-v", "error", "-ss", f"{at:.2f}", "-i", str(src), "-frames:v", "1",
+        "-vf", f"{SCALE},crop={W}:{height}:0:{y0},format=gray",
+        "-f", "rawvideo", "-pix_fmt", "gray", "-",
+    ], capture_output=True)
+    data = r.stdout
+    if not data:
+        return 1.0
+    return sum(1 for b in data if b > 215) / len(data)
+
+
+def poster(episodes: list, dest: Path):
+    """Подбирает для обложки кадр без субтитров.
+
+    Брать первый попавшийся кадр нельзя: на обложке оказывается чужая реплика,
+    местами иероглифами, и это первое, что видно на витрине. Поэтому
+    просматриваем моменты по нескольким сериям и берём тот, где полоса
+    субтитров пустая."""
     dest.parent.mkdir(parents=True, exist_ok=True)
+    best = None                                    # (загрязнённость, файл, момент)
+
+    for ep in episodes:
+        src = ROOT / ep["src"]
+        if not src.exists():
+            continue
+        for at in [2 + 2.4 * i for i in range(11)]:
+            load = subtitle_load(src, at)
+            if best is None or load < best[0]:
+                best = (load, src, at)
+            if load < CLEAN_ENOUGH:
+                break
+        if best and best[0] < CLEAN_ENOUGH:
+            break
+
+    if not best:
+        return
+    load, src, at = best
     run([FFMPEG, "-hide_banner", "-loglevel", "error",
-         "-ss", "3", "-i", str(src), "-frames:v", "1",
-         "-vf", SCALE, "-q:v", "4", "-y", str(dest)])
+         "-ss", f"{at:.2f}", "-i", str(src), "-frames:v", "1",
+         "-vf", f"{SCALE},crop={W}:{int(H * POSTER_TRIM)}:0:0",
+         "-q:v", "4", "-y", str(dest)])
+    print(f"    обложка: {src.name} @ {at:.1f}с, субтитров {load * 100:.2f}%")
 
 
 def main():
@@ -114,10 +170,9 @@ def main():
                 print(f"    серия {ep['n']:>2}: не пережалась", flush=True)
             raw.unlink(missing_ok=True)
 
-        first = ROOT / eps[0]["src"]
         p = ROOT / s["poster"]
-        if first.exists() and not p.exists():
-            poster(first, p)
+        if not p.exists():
+            poster(eps, p)
         print(f"    итог: {ok}/{len(eps)}", flush=True)
 
     shutil.rmtree(TMP, ignore_errors=True)
