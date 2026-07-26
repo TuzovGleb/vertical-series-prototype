@@ -522,6 +522,10 @@ body { display: flex; justify-content: center; }
   backdrop-filter: blur(3px);
   transition: opacity .4s var(--ease);
   z-index: 5;
+  /* Подсказка лежит поверх всего экрана. Без этого она первые секунды
+     съедала бы все касания — то есть ровно тогда, когда её и читают
+     и сразу пробуют свайпнуть. */
+  pointer-events: none;
 }
 .hint[hidden] { display: none; }
 .hint.is-out { opacity: 0; }

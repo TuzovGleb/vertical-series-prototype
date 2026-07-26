@@ -79,8 +79,7 @@
     // если браузер всё равно откажет, плеер сам предложит кнопку «включить звук».
     state.audio = true;
     document.getElementById('catalog').hidden = true;
-    const start = state.progress[content.series[i].id] || 0;
-    Player.open(i, start);
+    Player.open(i);
   }
 
   function backToCatalog() {

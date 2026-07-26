@@ -8,6 +8,7 @@ window.Player = (function () {
 
   const HOOK_LEAD   = 3.0;   // за сколько секунд до конца показывать клиффхэнгер
   const PREVIEW_MS  = 3000;  // сколько превью ждёт перед автостартом
+  const OPENING_MS  = 5000;  // при открытии из витрины — дольше, описание читают
   const AXIS_BIAS   = 1.4;   // насколько горизонталь должна перевесить вертикаль
   const SWIPE_PART  = 0.22;  // доля ширины, после которой свайп засчитан
 
@@ -77,15 +78,24 @@ window.Player = (function () {
 
   /* ───────────────────────── открытие и закрытие ───────────────────────── */
 
-  function open(si, ei) {
+  /* Сериал открывается со своей карточки-описания, а не сразу с первой серии:
+     иначе суть истории нигде не показывается — из витрины зритель попадал
+     прямо в середину действия. Карточка сама уезжает через несколько секунд. */
+  function open(si) {
     seriesIndex = si;
-    epIndex = ei || 0;
+    epIndex = 0;
+    panels = [];
+    feed.innerHTML = '';
+    feed.style.transform = '';
     el('player').hidden = false;
-    buildFeed();
-    scrollToEpisode(epIndex, 'instant');
-    setActive(epIndex, true);
+
     if (syncTimer) clearInterval(syncTimer);
     syncTimer = setInterval(syncActive, 250);
+
+    fillPreview(si);
+    preview.style.transition = 'none';
+    preview.style.transform = 'translateX(0px)';
+    startPreviewTimer(OPENING_MS);
     if (!state.hintSeen) showHint();
   }
 
@@ -290,15 +300,16 @@ window.Player = (function () {
   /* Отсчёт до автостарта: полоска едет CSS-переходом, а решение о старте
      принимает setTimeout. Раньше и то и другое висело на requestAnimationFrame —
      он останавливается вместе с отрисовкой, и превью зависало навсегда. */
-  function startPreviewTimer() {
+  function startPreviewTimer(ms) {
     stopPreviewTimer();
+    const wait = ms || PREVIEW_MS;
     const bar = el('previewTimer');
     bar.style.transition = 'none';
     bar.style.width = '0%';
     void bar.offsetWidth;                     // reflow, иначе перехода не будет
-    bar.style.transition = `width ${PREVIEW_MS}ms linear`;
+    bar.style.transition = `width ${wait}ms linear`;
     bar.style.width = '100%';
-    previewTimer = setTimeout(commitPreview, PREVIEW_MS);
+    previewTimer = setTimeout(commitPreview, wait);
   }
 
   function stopPreviewTimer() {
@@ -339,6 +350,10 @@ window.Player = (function () {
 
   function bindGestures() {
     let x0 = 0, y0 = 0, axis = null, dragging = false, moved = false, w = 0;
+    // Жест с открытого превью работает иначе, чем из ленты: лента в этот
+    // момент уже уехала за экран, тянуть надо само превью. Режим фиксируется
+    // в начале жеста и до конца не меняется.
+    let fromPreview = false;
 
     const reset = () => {
       axis = null; dragging = false;
@@ -353,9 +368,10 @@ window.Player = (function () {
       y0 = e.touches[0].clientY;
       w = stage.clientWidth;
       axis = null; dragging = false; moved = false;
+      fromPreview = previewTarget !== null;
       feed.style.transition = 'none';
       preview.style.transition = 'none';
-      stopPreviewTimer();
+      stopPreviewTimer();                  // палец на экране — отсчёт не идёт
     }, { passive: true });
 
     stage.addEventListener('touchmove', (e) => {
@@ -369,38 +385,50 @@ window.Player = (function () {
         if (axis === 'x') {
           dragging = true;
           feed.style.touchAction = 'none';   // дальше вертикаль не вмешивается
-          const dir = dx < 0 ? 1 : -1;
-          fillPreview(wrap(seriesIndex + dir));
+          if (!fromPreview) fillPreview(wrap(seriesIndex + (dx < 0 ? 1 : -1)));
         }
       }
 
       if (!dragging) return;
       e.preventDefault();
       const dir = dx < 0 ? 1 : -1;
-      // если палец сменил направление — перекладываем превью на другую сторону
-      if ((dir === 1 && previewTarget !== wrap(seriesIndex + 1)) ||
-          (dir === -1 && previewTarget !== wrap(seriesIndex - 1))) {
-        fillPreview(wrap(seriesIndex + dir));
+
+      if (fromPreview) {
+        preview.style.transform = `translateX(${dx}px)`;
+        return;
       }
+
+      // палец сменил направление — перекладываем превью на другую сторону
+      if (previewTarget !== wrap(seriesIndex + dir)) fillPreview(wrap(seriesIndex + dir));
       if (preview.hidden) return;
       feed.style.transform = `translateX(${dx}px)`;
       preview.style.transform = `translateX(${dx + dir * w}px)`;
     }, { passive: false });
 
     stage.addEventListener('touchend', (e) => {
+      const touch = e.changedTouches && e.changedTouches[0];
+      const dx = touch ? touch.clientX - x0 : 0;
+
       if (!dragging) {
         // Именно !== null: индекс сериала бывает нулём, и проверка на
         // истинность приняла бы открытое превью первого сериала за его отсутствие.
         if (!moved && previewTarget === null) togglePause();
+        // Палец ушёл, ничего не выбрав — отсчёт превью надо вернуть,
+        // иначе оно зависнет навсегда.
+        if (previewTarget !== null) startPreviewTimer();
         reset();
         return;
       }
-      const dx = (e.changedTouches[0] || {}).clientX - x0;
+
       const dir = dx < 0 ? 1 : -1;
+      const enough = Math.abs(dx) > w * SWIPE_PART;
       feed.style.transition = 'transform .28s cubic-bezier(.22,.61,.36,1)';
       preview.style.transition = feed.style.transition;
 
-      if (Math.abs(dx) > w * SWIPE_PART) {
+      if (fromPreview) {
+        if (enough) goSeries(dir);           // листаем на соседнее описание
+        else { preview.style.transform = 'translateX(0px)'; startPreviewTimer(); }
+      } else if (enough) {
         feed.style.transform = `translateX(${-dir * w}px)`;
         preview.style.transform = 'translateX(0px)';
         pauseAll();
@@ -427,13 +455,22 @@ window.Player = (function () {
   function goSeries(dir) {
     const w = stage.clientWidth;
 
-    // Уже стоим в превью — лента отъехала, двигать её незачем.
-    // Просто перекладываем превью на соседний сериал и заводим отсчёт заново.
+    // Уже стоим в превью — лента отъехала, двигать её незачем. Считаем
+    // соседа от previewTarget, а не от seriesIndex: тот ещё не сменился, и
+    // листание топталось бы между двумя одними и теми же сериалами.
     if (previewTarget !== null) {
-      fillPreview(wrap(previewTarget + dir));
-      preview.style.transition = 'none';
-      preview.style.transform = 'translateX(0px)';
-      startPreviewTimer();
+      const next = wrap(previewTarget + dir);
+      preview.style.transition = 'transform .15s ease-in';
+      preview.style.transform = `translateX(${-dir * w * 0.4}px)`;
+      setTimeout(() => {
+        fillPreview(next);
+        preview.style.transition = 'none';
+        preview.style.transform = `translateX(${dir * w}px)`;
+        void preview.offsetWidth;
+        preview.style.transition = 'transform .26s cubic-bezier(.22,.61,.36,1)';
+        preview.style.transform = 'translateX(0px)';
+        startPreviewTimer();
+      }, 150);
       return;
     }
 
