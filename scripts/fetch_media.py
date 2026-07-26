@@ -77,11 +77,14 @@ CLEAN_ENOUGH = 0.0015              # доля почти-белых пиксел
 # — зато он мешал бы выбирать по-настоящему чистые кадры.
 
 
-def subtitle_load(src: Path, at: float) -> float:
-    """Доля почти-белых пикселей в полосе субтитров — прокси наличия текста.
+def subtitle_load(src: Path, at: float):
+    """Возвращает (доля почти-белых пикселей, средняя яркость) полосы субтитров.
 
-    Субтитры вшиты в картинку: белые буквы с тёмной обводкой. Если в полосе
-    почти нет ярких пикселей, значит в этот момент реплики на экране нет."""
+    Первое — прокси наличия текста: субтитры вшиты в картинку белыми буквами,
+    и если ярких пикселей почти нет, реплики на экране нет.
+    Второе нужно, чтобы не выбрать чёрный кадр: минимум ярких пикселей всегда
+    у самых тёмных кадров, и поиск по одному лишь минимуму приводит к обложке,
+    на которой ничего не видно."""
     y0 = int(H * SUB_TOP)
     height = int(H * SUB_BOTTOM) - y0
     # Полосу нельзя сильно ужимать: субтитры — тонкие белые штрихи, при
@@ -94,8 +97,8 @@ def subtitle_load(src: Path, at: float) -> float:
     ], capture_output=True)
     data = r.stdout
     if not data:
-        return 1.0
-    return sum(1 for b in data if b > 215) / len(data)
+        return 1.0, 0.0
+    return sum(1 for b in data if b > 215) / len(data), sum(data) / len(data)
 
 
 def poster(episodes: list, dest: Path):
@@ -106,29 +109,33 @@ def poster(episodes: list, dest: Path):
     просматриваем моменты по нескольким сериям и берём тот, где полоса
     субтитров пустая."""
     dest.parent.mkdir(parents=True, exist_ok=True)
-    best = None                                    # (загрязнённость, файл, момент)
 
+    scored = []                                    # (загрязнённость, яркость, файл, момент)
     for ep in episodes:
         src = ROOT / ep["src"]
         if not src.exists():
             continue
         for at in [2 + 2.4 * i for i in range(11)]:
-            load = subtitle_load(src, at)
-            if best is None or load < best[0]:
-                best = (load, src, at)
-            if load < CLEAN_ENOUGH:
-                break
-        if best and best[0] < CLEAN_ENOUGH:
-            break
+            load, bright = subtitle_load(src, at)
+            scored.append((load, bright, src, at))
 
-    if not best:
+    if not scored:
         return
-    load, src, at = best
+
+    # Сначала отсекаем кадры с репликой, и только среди оставшихся берём самый
+    # светлый. Выбор по одной лишь чистоте всегда приводил к чёрному кадру:
+    # где ничего не видно, там и ярких пикселей нет.
+    clean = [s for s in scored if s[0] <= CLEAN_ENOUGH]
+    if not clean:
+        floor = min(s[0] for s in scored)
+        clean = [s for s in scored if s[0] <= floor * 2.5]
+    load, bright, src, at = max(clean, key=lambda s: s[1])
     run([FFMPEG, "-hide_banner", "-loglevel", "error",
          "-ss", f"{at:.2f}", "-i", str(src), "-frames:v", "1",
          "-vf", f"{SCALE},crop={W}:{int(H * POSTER_TRIM)}:0:0",
          "-q:v", "4", "-y", str(dest)])
-    print(f"    обложка: {src.name} @ {at:.1f}с, субтитров {load * 100:.2f}%")
+    print(f"    обложка: {src.parent.name}/{src.name} @ {at:.1f}с — "
+          f"субтитров {load * 100:.2f}%, яркость {bright:.0f}")
 
 
 def main():
