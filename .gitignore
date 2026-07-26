@@ -6,6 +6,10 @@ data/content.json
 # Временные исходники, которые режет fetch_media.py
 media/_src/
 
+__pycache__/
+*.pyc
+_sheets/
+
 *.log
 .DS_Store
 Thumbs.db
