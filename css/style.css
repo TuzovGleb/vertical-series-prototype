@@ -1,0 +1,554 @@
+/* СЮЖЕТ — прототип вертикальных мини-сериалов.
+   Мобайл-фёрст. Ни одного внешнего ресурса: демо должно работать без сети. */
+
+:root {
+  --bg:        #08080b;
+  --bg-soft:   #121218;
+  --line:      #23232c;
+  --text:      #f4f4f6;
+  --muted:     #8b8b98;
+  --accent:    #c4415f;
+  --radius:    14px;
+  --ease:      cubic-bezier(.22, .61, .36, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  background: #000;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+body { display: flex; justify-content: center; }
+
+/* На телефоне — во весь экран. На десктопе — колонка-«телефон». */
+.frame {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 100dvh;
+  background: var(--bg);
+  overflow: hidden;
+}
+@media (min-width: 700px) {
+  body { align-items: center; background: #131318; }
+  .frame {
+    height: min(92dvh, 940px);
+    border-radius: 28px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 1px #26262f;
+  }
+}
+
+.view { position: absolute; inset: 0; }
+.view[hidden] { display: none; }
+
+/* ══════════════ ВХОД ══════════════ */
+
+.view--gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(120% 80% at 50% 0%, #1d1420 0%, var(--bg) 62%);
+}
+
+.gate { width: 100%; max-width: 300px; text-align: center; }
+
+.gate__brand {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: .18em;
+  background: linear-gradient(94deg, #ff5d7a, #c4415f 42%, #7a4fd6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gate__note {
+  margin: 12px 0 26px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.gate__input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #15151c;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;              /* меньше 16px — iOS зумит страницу при фокусе */
+  text-align: center;
+  outline: none;
+  transition: border-color .18s var(--ease);
+}
+.gate__input:focus { border-color: #4a4a5c; }
+.gate__input::placeholder { color: #4f4f5e; }
+
+.gate__btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px;
+  border: 0;
+  border-radius: 12px;
+  background: #fff;
+  color: #0b0b0f;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.gate__btn:active { transform: scale(.98); }
+.gate__btn:disabled { opacity: .5; cursor: default; }
+
+.gate__msg { margin-top: 14px; font-size: 13px; color: #e0607c; min-height: 18px; }
+.gate__msg[hidden] { display: none; }
+
+.gate.is-wrong { animation: shake .34s; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0) }
+  20% { transform: translateX(-8px) }
+  40% { transform: translateX(7px) }
+  60% { transform: translateX(-4px) }
+  80% { transform: translateX(3px) }
+}
+
+/* ══════════════ ВИТРИНА ══════════════ */
+
+.view--catalog {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: calc(env(safe-area-inset-top) + 26px) 18px
+           calc(env(safe-area-inset-bottom) + 32px);
+}
+
+.head { margin-bottom: 22px; }
+
+.brand {
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  background: linear-gradient(94deg, #ff5d7a, #c4415f 42%, #7a4fd6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.tagline { margin-top: 5px; color: var(--muted); font-size: 14px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.card {
+  position: relative;
+  border: 0;
+  padding: 0;
+  aspect-ratio: 9 / 14;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-soft);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  transition: transform .18s var(--ease);
+}
+.card:active { transform: scale(.972); }
+
+.card__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Заливка акцентом — она же фолбэк, если постер ещё не нарезан */
+.card__fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, var(--c) 0%, #16161c 92%);
+}
+
+.card__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top,
+              rgba(0,0,0,.92) 0%, rgba(0,0,0,.45) 38%, rgba(0,0,0,0) 68%);
+}
+
+.card__body { position: absolute; left: 11px; right: 11px; bottom: 11px; }
+
+.card__title {
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.24;
+  margin-bottom: 4px;
+}
+
+.card__meta { font-size: 11.5px; color: #b9b9c6; }
+
+.card__badge {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  padding: 3px 8px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(8px);
+  color: #fff;
+}
+
+.card__resume {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  padding: 3px 8px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--c);
+  color: #fff;
+}
+
+/* ── о сервисе ── */
+
+.about {
+  margin-top: 30px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+}
+.about h2 { font-size: 13px; color: var(--muted); font-weight: 600;
+            text-transform: uppercase; letter-spacing: .09em; margin-bottom: 9px; }
+.about p { font-size: 14.5px; line-height: 1.55; color: #d8d8e0; }
+
+.feats { list-style: none; display: flex; gap: 8px; margin-top: 16px; }
+.feats li {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 10px;
+  background: #191921;
+  text-align: center;
+}
+.feats b { display: block; font-size: 13.5px; }
+.feats span { display: block; font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+
+.foot { margin-top: 20px; }
+.foot p { font-size: 11px; line-height: 1.5; color: #5c5c68; }
+
+/* ══════════════ ПЛЕЕР ══════════════ */
+
+.view--player { background: #000; }
+
+.stage { position: absolute; inset: 0; overflow: hidden; }
+
+/* Вертикаль отдаём браузеру (нативная инерция и снап),
+   горизонталь остаётся свободной для наших жестов. */
+.feed {
+  position: absolute;
+  inset: 0;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  will-change: transform;
+}
+.feed::-webkit-scrollbar { display: none; }
+
+.ep {
+  position: relative;
+  height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  background: #000;
+  overflow: hidden;
+}
+@media (min-width: 700px) { .ep { height: 100%; } }
+
+.ep__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+
+.ep__shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 18%),
+              linear-gradient(to top,    rgba(0,0,0,.8)  0%, rgba(0,0,0,0) 30%);
+}
+
+.ep__meta {
+  position: absolute;
+  left: 16px;
+  right: 76px;
+  bottom: calc(env(safe-area-inset-bottom) + 26px);
+  pointer-events: none;
+}
+.ep__series { font-size: 15px; font-weight: 700; margin-bottom: 3px;
+              text-shadow: 0 1px 12px rgba(0,0,0,.8); }
+.ep__title  { font-size: 12.5px; color: #cfcfda;
+              text-shadow: 0 1px 12px rgba(0,0,0,.8); }
+
+/* Клиффхэнгер — всплывает за несколько секунд до конца серии */
+.ep__hook {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-46%) scale(.94);
+  text-align: center;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-shadow: 0 2px 24px rgba(0,0,0,.95);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .45s var(--ease), transform .45s var(--ease);
+}
+.ep.is-hooked .ep__hook { opacity: 1; transform: translateY(-50%) scale(1); }
+
+.ep__bar {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(env(safe-area-inset-bottom) + 8px);
+  height: 2px;
+  margin: 0 16px;
+  border-radius: 2px;
+  background: rgba(255,255,255,.2);
+  overflow: hidden;
+}
+.ep__bar i { display: block; height: 100%; width: 0; background: #fff; }
+
+/* Иконка паузы по тапу */
+.ep__pause {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 62px; height: 62px;
+  margin: -31px 0 0 -31px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transform: scale(.7);
+  transition: opacity .2s, transform .2s;
+  pointer-events: none;
+}
+.ep__pause::before {
+  content: "";
+  position: absolute;
+  left: 22px; top: 19px;
+  width: 6px; height: 24px;
+  border-left: 6px solid #fff;
+  border-right: 6px solid #fff;
+  box-sizing: content-box;
+}
+.ep.is-paused .ep__pause { opacity: 1; transform: scale(1); }
+
+/* ── точки прогресса по сериям ── */
+
+.dots {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  pointer-events: none;
+}
+.dots i {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.32);
+  transition: all .25s var(--ease);
+}
+.dots i.on { background: #fff; height: 15px; border-radius: 3px; }
+.dots i.seen { background: rgba(255,255,255,.62); }
+
+/* ── превью сериала при горизонтальном свайпе ── */
+
+.preview {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  background: #000;
+}
+.preview[hidden] { display: none; }
+
+.preview__bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+.preview__bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top,
+              rgba(0,0,0,.96) 4%, rgba(0,0,0,.55) 42%, rgba(0,0,0,.15) 100%);
+}
+
+.preview__body {
+  position: relative;
+  width: 100%;
+  padding: 0 24px calc(env(safe-area-inset-bottom) + 54px);
+}
+
+.preview__genre {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  background: var(--c, var(--accent));
+  margin-bottom: 12px;
+}
+
+.preview__title { font-size: 29px; font-weight: 800; line-height: 1.12; }
+
+.preview__synopsis {
+  margin-top: 11px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #cdcdd8;
+}
+
+.preview__play {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 20px;
+  padding: 13px 26px;
+  border: 0;
+  border-radius: 100px;
+  background: #fff;
+  color: #0b0b0f;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.preview__play:active { transform: scale(.96); }
+.preview__playIcon {
+  width: 0; height: 0;
+  border-left: 11px solid #0b0b0f;
+  border-top: 7px solid transparent;
+  border-bottom: 7px solid transparent;
+}
+
+.preview__timer {
+  margin-top: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255,255,255,.18);
+  overflow: hidden;
+}
+.preview__timer i { display: block; height: 100%; width: 0; background: rgba(255,255,255,.75); }
+
+/* ── служебные элементы плеера ── */
+
+.back {
+  position: absolute;
+  left: 10px;
+  top: calc(env(safe-area-inset-top) + 10px);
+  width: 38px; height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0,0,0,.4);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+.back::before {
+  content: "";
+  position: absolute;
+  left: 15px; top: 13px;
+  width: 10px; height: 10px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(45deg);
+}
+
+.sound {
+  position: absolute;
+  right: 10px;
+  top: calc(env(safe-area-inset-top) + 10px);
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 100px;
+  background: rgba(255,255,255,.92);
+  color: #0b0b0f;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── подсказка при первом входе ── */
+
+.hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,.62);
+  backdrop-filter: blur(3px);
+  transition: opacity .4s var(--ease);
+  z-index: 5;
+}
+.hint[hidden] { display: none; }
+.hint.is-out { opacity: 0; }
+
+.hint__card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 26px;
+  border-radius: 18px;
+  background: rgba(22,22,28,.9);
+  border: 1px solid #2c2c38;
+}
+.hint__row { display: flex; align-items: center; gap: 14px; font-size: 14.5px; }
+
+.hint__ax { position: relative; width: 26px; height: 26px; flex: none; }
+.hint__ax::before, .hint__ax::after {
+  content: "";
+  position: absolute;
+  width: 9px; height: 9px;
+  border-left: 2px solid #fff;
+  border-top: 2px solid #fff;
+}
+.hint__ax--v::before { left: 8px; top: 2px;  transform: rotate(45deg);  animation: nudgeV 1.5s infinite; }
+.hint__ax--v::after  { left: 8px; top: 13px; transform: rotate(225deg); animation: nudgeV 1.5s infinite reverse; }
+.hint__ax--h::before { left: 2px;  top: 8px; transform: rotate(-45deg); animation: nudgeH 1.5s infinite; }
+.hint__ax--h::after  { left: 13px; top: 8px; transform: rotate(135deg); animation: nudgeH 1.5s infinite reverse; }
+
+@keyframes nudgeV { 0%,100% { opacity: .45 } 50% { opacity: 1 } }
+@keyframes nudgeH { 0%,100% { opacity: .45 } 50% { opacity: 1 } }

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#08080b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>СЮЖЕТ — вертикальные мини-сериалы</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="frame">
+
+  <!-- ═══ ВХОД ═══ -->
+  <section class="view view--gate" id="gate">
+    <form class="gate" id="gateForm" autocomplete="on">
+      <div class="gate__brand">СЮЖЕТ</div>
+      <p class="gate__note">Закрытый прототип.<br>Введите пароль, чтобы посмотреть.</p>
+      <input class="gate__input" id="gatePass" type="password" placeholder="Пароль"
+             autocomplete="current-password" autocapitalize="off"
+             autocorrect="off" spellcheck="false" enterkeyhint="go">
+      <button class="gate__btn" type="submit" id="gateBtn">Войти</button>
+      <p class="gate__msg" id="gateMsg" hidden></p>
+    </form>
+  </section>
+
+  <!-- ═══ ВИТРИНА ═══ -->
+  <main class="view view--catalog" id="catalog" hidden>
+    <header class="head">
+      <div class="brand" id="brand">СЮЖЕТ</div>
+      <p class="tagline" id="tagline"></p>
+    </header>
+
+    <div class="grid" id="grid"></div>
+
+    <section class="about">
+      <h2>Что это</h2>
+      <p id="about"></p>
+      <ul class="feats">
+        <li><b>1 минута</b><span>одна серия</span></li>
+        <li><b>10 серий</b><span>в сезоне</span></li>
+        <li><b>Без установки</b><span>прямо в браузере</span></li>
+      </ul>
+    </section>
+
+    <footer class="foot">
+      <p>Прототип формата. Видеоматериал — фрагменты сторонних вертикальных
+         сериалов, использованы как референс для демонстрации механики.</p>
+    </footer>
+  </main>
+
+  <!-- ═══ ПЛЕЕР ═══ -->
+  <section class="view view--player" id="player" hidden>
+    <div class="stage" id="stage">
+      <div class="feed" id="feed"></div>
+      <div class="preview" id="preview" hidden>
+        <div class="preview__bg" id="previewBg"></div>
+        <div class="preview__body">
+          <div class="preview__genre" id="previewGenre"></div>
+          <h2 class="preview__title" id="previewTitle"></h2>
+          <p class="preview__synopsis" id="previewSynopsis"></p>
+          <button class="preview__play" id="previewPlay">
+            <span class="preview__playIcon"></span>
+            <span id="previewCta">Смотреть</span>
+          </button>
+          <div class="preview__timer"><i id="previewTimer"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="back" id="back" aria-label="К списку сериалов"></button>
+    <div class="dots" id="dots"></div>
+    <button class="sound" id="sound" hidden>Включить звук</button>
+
+    <div class="hint" id="hint" hidden>
+      <div class="hint__card">
+        <div class="hint__row">
+          <span class="hint__ax hint__ax--v"></span>
+          <span id="hintV">Свайп вверх — следующая серия</span>
+        </div>
+        <div class="hint__row">
+          <span class="hint__ax hint__ax--h"></span>
+          <span id="hintH">Свайп вбок — другой сериал</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script src="js/player.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
