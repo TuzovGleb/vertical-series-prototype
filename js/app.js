@@ -93,10 +93,9 @@
     img.addEventListener('error', () => { img.remove(); });
     img.src = s.poster;
 
-    card.addEventListener('click', () => {
-      if (s.locked) Paywall.open(index, null);
-      else openSeries(index);
-    });
+    // Закрытые открываются так же, как остальные: у них есть своя карточка
+    // с описанием, а разблокировка предлагается уже с неё.
+    card.addEventListener('click', () => openSeries(index));
     return card;
   }
 

@@ -87,6 +87,7 @@ window.Player = (function () {
     panels = [];
     feed.innerHTML = '';
     feed.style.transform = '';
+    dots.innerHTML = '';
     el('player').hidden = false;
 
     if (syncTimer) clearInterval(syncTimer);
@@ -162,6 +163,7 @@ window.Player = (function () {
 
   function buildDots(n) {
     dots.innerHTML = '';
+    dots.hidden = false;
     for (let i = 0; i < n; i++) dots.appendChild(document.createElement('i'));
   }
 
@@ -297,12 +299,28 @@ window.Player = (function () {
     el('previewTitle').textContent = s.title;
     el('previewSynopsis').textContent = s.synopsis;
 
+    /* Платность видна прямо на карточке: метка у жанра, замок на кнопке,
+       строка про порог и замки в полоске серий. Иначе закрытый сериал
+       выглядел бы обычным, и монетизация всплывала бы только после нажатия. */
+    const money = content.service.monetization || {};
     const done = state.progress[s.id] || 0;
-    el('previewCta').textContent = done > 0
-      ? `Продолжить с ${s.episodes[done].n} серии`
-      : 'Смотреть';
+
+    el('previewPaid').hidden = !s.locked;
+    el('previewPlay').classList.toggle('preview__play--locked', !!s.locked);
+    el('previewNote').hidden = !s.locked;
+    if (s.locked) {
+      el('previewNote').textContent =
+        `Первые ${money.freeEpisodes} серий бесплатно, дальше — ${money.price} или просмотр рекламы.`;
+    }
+
+    el('previewCta').textContent = s.locked
+      ? 'Открыть доступ'
+      : (done > 0 ? `Продолжить с ${s.episodes[done].n} серии` : 'Смотреть');
     el('previewTimer').style.width = '0%';
     paintEpStrip(s);
+    // У закрытого ленты нет — чужие точки прогресса рядом с его карточкой
+    // сбивали бы с толку.
+    dots.hidden = !!s.locked;
     preview.hidden = false;
   }
 
@@ -310,9 +328,30 @@ window.Player = (function () {
      и где начинается платная часть. */
   function paintEpStrip(s) {
     const strip = el('epstrip');
-    if (!s.episodes) { strip.hidden = true; return; }
     const seen = state.progress[s.id] || 0;
     strip.innerHTML = '';
+
+    if (s.locked) {
+      // Сезон у закрытых на несколько десятков серий — целиком полоска
+      // не влезет. Показываем начало и остаток числом.
+      const free = (content.service.monetization || {}).freeEpisodes || 8;
+      const shown = Math.min(s.episodeCount, free + 3);
+      for (let i = 0; i < shown; i++) {
+        const cell = document.createElement('i');
+        cell.className = i < free ? '' : 'paid';
+        cell.innerHTML = `<span>${i + 1}</span>`;
+        strip.appendChild(cell);
+      }
+      if (s.episodeCount > shown) {
+        const rest = document.createElement('i');
+        rest.className = 'more';
+        rest.textContent = `+${s.episodeCount - shown}`;
+        strip.appendChild(rest);
+      }
+      strip.hidden = false;
+      return;
+    }
+
     s.episodes.forEach((ep, i) => {
       const cell = document.createElement('i');
       const paid = !Paywall.allowed(s, i);
@@ -328,6 +367,9 @@ window.Player = (function () {
      он останавливается вместе с отрисовкой, и превью зависало навсегда. */
   function startPreviewTimer(ms) {
     stopPreviewTimer();
+    // У закрытого сериала запускать нечего: карточка ждёт действия зрителя,
+    // а сама собой открывать оплату — навязчиво.
+    if (previewTarget !== null && content.series[previewTarget].locked) return;
     const wait = ms || PREVIEW_MS;
     const bar = el('previewTimer');
     bar.style.transition = 'none';
@@ -359,6 +401,14 @@ window.Player = (function () {
     stopPreviewTimer();
     const si = previewTarget;
     const s = content.series[si];
+
+    // Смотреть нечего — вместо ленты показываем разблокировку,
+    // а карточка остаётся под ней.
+    if (s.locked) {
+      Paywall.open(si, null);
+      return;
+    }
+
     const start = state.progress[s.id] || 0;
 
     seriesIndex = si;
@@ -476,16 +526,11 @@ window.Player = (function () {
     });
   }
 
-  /* Соседний сериал ищется только среди тех, у кого есть видео: каталог
-     содержит и закрытые заглушки, свайп на них уронил бы ленту. */
+  /* Свайп идёт по всему каталогу, включая закрытые: у них есть своя
+     карточка с описанием, а ленту им никто не строит. */
   function neighbour(from, dir) {
-    const list = content.series.reduce((acc, s, i) => {
-      if (!s.locked) acc.push(i);
-      return acc;
-    }, []);
-    if (!list.length) return from;
-    const at = list.indexOf(from);
-    return list[((at < 0 ? 0 : at) + dir + list.length) % list.length];
+    const n = content.series.length;
+    return ((from + dir) % n + n) % n;
   }
 
   /** Переход к соседнему сериалу без жеста (конец сериала, клавиатура). */

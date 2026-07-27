@@ -482,6 +482,7 @@ body { display: flex; justify-content: center; }
   gap: 5px;
   pointer-events: none;
 }
+.dots[hidden] { display: none; }
 .dots i {
   width: 4px; height: 4px;
   border-radius: 50%;
@@ -529,6 +530,8 @@ body { display: flex; justify-content: center; }
   padding: 0 24px calc(env(safe-area-inset-bottom) + 54px);
 }
 
+.preview__chips { display: flex; gap: 6px; margin-bottom: 12px; }
+
 .preview__genre {
   display: inline-block;
   padding: 4px 10px;
@@ -538,7 +541,54 @@ body { display: flex; justify-content: center; }
   letter-spacing: .05em;
   text-transform: uppercase;
   background: var(--c, var(--accent));
-  margin-bottom: 12px;
+}
+
+/* Метка платности на карточке. Без неё закрытый сериал выглядел бы как
+   обычный, и то, что он монетизируется, выяснялось бы только после нажатия. */
+.preview__paid {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 100px;
+  border: 1px solid rgba(255,255,255,.34);
+  background: rgba(0,0,0,.42);
+  backdrop-filter: blur(8px);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.preview__paid[hidden] { display: none; }
+/* Замок глифом, а не на псевдоэлементах: собранный из рамок он разъезжался
+   и читался квадратом. В полоске серий тот же приём. */
+.preview__paid::before { content: "🔒"; font-size: 9px; line-height: 1; }
+
+.preview__note {
+  margin-top: 10px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.preview__note[hidden] { display: none; }
+
+/* Кнопка закрытого сериала: замок вместо треугольника — понятно
+   до нажатия, что дальше будет разблокировка, а не воспроизведение. */
+.preview__play--locked .preview__playIcon {
+  position: relative;
+  width: 11px; height: 9px;
+  border: 0;
+  border-radius: 2px;
+  background: #0b0b0f;
+}
+.preview__play--locked .preview__playIcon::before {
+  content: "";
+  position: absolute;
+  left: 2px; top: -6px;
+  width: 5px; height: 6px;
+  border: 2px solid #0b0b0f;
+  border-bottom: 0;
+  border-radius: 4px 4px 0 0;
 }
 
 .preview__title { font-size: 29px; font-weight: 800; line-height: 1.12; }
@@ -707,6 +757,16 @@ body { display: flex; justify-content: center; }
 }
 .epstrip i.paid::after { content: "🔒"; font-size: 9px; }
 .epstrip i.paid span { display: none; }
+
+/* Остаток сезона у закрытых: «+58» вместо полусотни ячеек */
+.epstrip i.more {
+  width: auto;
+  padding: 0 9px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.22);
+  color: var(--muted);
+  font-size: 11px;
+}
 
 /* ══════════════ РАЗБЛОКИРОВКА ══════════════ */
 
