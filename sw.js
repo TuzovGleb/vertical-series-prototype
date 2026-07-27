@@ -7,7 +7,7 @@
    Оболочка (html/css/js/json) — network-first: правки кода всегда доезжают.
    Медиа — cache-first: файлы неизменны и тяжелы, тянуть их повторно незачем. */
 
-const CACHE = 'sujet-v1';
+const CACHE = 'sujet-v2';
 
 const SHELL = [
   './',
@@ -15,6 +15,7 @@ const SHELL = [
   'css/style.css',
   'js/app.js',
   'js/player.js',
+  'js/paywall.js',
   'data/content.enc',
 ];
 
