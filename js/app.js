@@ -2,6 +2,26 @@
 
 (function () {
 
+  /* Аварийный сброс: ?reset в адресе снимает service worker, чистит кэши
+     и хранилище. Нужен потому, что медиа кэшируется надолго, и на телефоне
+     без инструментов разработчика вычистить его иначе нечем. */
+  if (/[?&]reset\b/.test(location.search)) {
+    (async () => {
+      try {
+        if (navigator.serviceWorker) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister()));
+        }
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) { /* всё равно перезагружаемся */ }
+      location.replace(location.pathname);   // без ?reset — повтора не будет
+    })();
+    return;
+  }
+
   const STORE = 'sujet.state.v1';
 
   const state = {

@@ -7,7 +7,7 @@
    Оболочка (html/css/js/json) — network-first: правки кода всегда доезжают.
    Медиа — cache-first: файлы неизменны и тяжелы, тянуть их повторно незачем. */
 
-const CACHE = 'sujet-v3';
+const CACHE = 'sujet-v4';
 
 const SHELL = [
   './',
@@ -19,7 +19,18 @@ const SHELL = [
   'data/content.enc',
 ];
 
-const isMedia = (url) => /\.(mp4|jpg|jpeg|png|webp|svg)$/i.test(url);
+/* Видео и картинки кэшируются по-разному, и это не придирка.
+
+   Видео за всю жизнь прототипа не меняется, зато весит десятки мегабайт —
+   ему подходит cache-first: взяли из кэша и в сеть не ходим.
+
+   Обложки, наоборот, перерисовываются на каждой итерации, а имя файла
+   остаётся прежним. При cache-first такая картинка застревала в кэше
+   навсегда, и обычная перезагрузка её не пробивала. Поэтому у картинок
+   stale-while-revalidate: отдаём кэш сразу, а следом тихо тянем свежую
+   и кладём на место — на следующем открытии будет новая. */
+const isVideo = (url) => /\.mp4$/i.test(url);
+const isImage = (url) => /\.(jpg|jpeg|png|webp|svg)$/i.test(url);
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -49,15 +60,28 @@ self.addEventListener('fetch', (e) => {
   // и отданный из кэша кусок сломает воспроизведение.
   const ranged = req.headers.has('range');
 
-  if (isMedia(url.pathname)) {
+  const store = (res) => {
+    if (res && res.status === 200 && !ranged) {
+      const copy = res.clone();
+      caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+    }
+    return res;
+  };
+
+  if (isVideo(url.pathname)) {
     e.respondWith(
-      caches.match(req, { ignoreVary: true }).then((hit) => hit || fetch(req).then((res) => {
-        if (res.status === 200 && !ranged) {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
-        }
-        return res;
-      }))
+      caches.match(req, { ignoreVary: true }).then((hit) => hit || fetch(req).then(store))
+    );
+    return;
+  }
+
+  if (isImage(url.pathname)) {
+    e.respondWith(
+      caches.match(req, { ignoreVary: true }).then((hit) => {
+        const fresh = fetch(req).then(store).catch(() => hit);
+        if (hit) e.waitUntil(fresh);   // обновляем в фоне, ответ не задерживаем
+        return hit || fresh;
+      })
     );
     return;
   }
