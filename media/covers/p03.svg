@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1176" width="720" height="1176"
+     font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#513d7f"/>
+      <stop offset="1" stop-color="#2d2247"/>
+    </linearGradient>
+    <radialGradient id="orb" cx="50%" cy="50%">
+      <stop offset="0" stop-color="#a999cd" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#a999cd" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#19142a" stop-opacity="0"/>
+      <stop offset="0.55" stop-color="#19142a" stop-opacity=".72"/>
+      <stop offset="1" stop-color="#19142a" stop-opacity=".97"/>
+    </linearGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="55"/></filter>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"/>
+      <feColorMatrix type="saturate" values="0"/>
+    </filter>
+  </defs>
+
+  <rect width="720" height="1176" fill="url(#bg)"/>
+  
+    <g opacity=".42">
+      
+      <rect x="0" y="120" width="720" height="13"
+            fill="#8972b9" opacity="0.5"/>
+      <rect x="0" y="160" width="720" height="13"
+            fill="#8972b9" opacity="0.474"/>
+      <rect x="0" y="200" width="720" height="13"
+            fill="#8972b9" opacity="0.448"/>
+      <rect x="0" y="240" width="720" height="13"
+            fill="#8972b9" opacity="0.422"/>
+      <rect x="0" y="280" width="720" height="13"
+            fill="#8972b9" opacity="0.396"/>
+      <rect x="0" y="320" width="720" height="13"
+            fill="#8972b9" opacity="0.37"/>
+      <rect x="0" y="360" width="720" height="13"
+            fill="#8972b9" opacity="0.344"/>
+      <rect x="0" y="400" width="720" height="13"
+            fill="#8972b9" opacity="0.318"/>
+      <rect x="0" y="440" width="720" height="13"
+            fill="#8972b9" opacity="0.29200000000000004"/>
+      <rect x="0" y="480" width="720" height="13"
+            fill="#8972b9" opacity="0.266"/>
+      <rect x="0" y="520" width="720" height="13"
+            fill="#8972b9" opacity="0.24"/>
+      <rect x="0" y="560" width="720" height="13"
+            fill="#8972b9" opacity="0.21400000000000002"/>
+      <rect x="0" y="600" width="720" height="13"
+            fill="#8972b9" opacity="0.188"/>
+      <rect x="0" y="640" width="720" height="13"
+            fill="#8972b9" opacity="0.16200000000000003"/>
+      <rect x="0" y="680" width="720" height="13"
+            fill="#8972b9" opacity="0.136"/>
+      <rect x="0" y="720" width="720" height="13"
+            fill="#8972b9" opacity="0.11000000000000004"/>
+      <rect x="0" y="760" width="720" height="13"
+            fill="#8972b9" opacity="0.08400000000000002"/>
+    </g>
+  <rect width="720" height="1176" filter="url(#grain)" opacity=".05"/>
+  <rect y="494" width="720" height="682" fill="url(#fade)"/>
+
+  
+    <text x="52" y="648" font-size="74" font-weight="800"
+          letter-spacing="-1" fill="#fff">КОМНАТА 312</text>
+</svg>

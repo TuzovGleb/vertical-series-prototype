@@ -50,8 +50,7 @@
 
     card.innerHTML = `
       <div class="card__fill"></div>
-      ${s.locked ? '<div class="card__art"></div>'
-                 : '<img class="card__img" alt="" loading="lazy">'}
+      <img class="card__img" alt="" loading="lazy">
       <div class="card__shade"></div>
       <div class="card__badge"></div>
       ${s.locked ? '<div class="card__lock"></div>'
@@ -63,21 +62,18 @@
 
     card.querySelector('.card__badge').textContent = s.trope || s.genre;
 
-    if (s.locked) {
-      // Своего видео у закрытых нет, поэтому обложка — акцентная заливка
-      // с названием; внизу остаётся только жанр и объём.
-      card.querySelector('.card__art').textContent = s.title;
-      card.querySelector('.card__title').textContent = s.genre;
-      card.querySelector('.card__meta').textContent = `${s.episodeCount} серий`;
-    } else {
-      card.querySelector('.card__title').textContent = s.title;
-      card.querySelector('.card__meta').textContent = `${s.episodes.length} серий`;
-      if (done > 0) card.querySelector('.card__resume').textContent = `${s.episodes[done].n} серия`;
-
-      const img = card.querySelector('.card__img');
-      img.addEventListener('error', () => { img.remove(); });
-      img.src = s.poster;
+    // У закрытых название набрано прямо в обложке — как на настоящем постере,
+    // поэтому внизу карточки остаётся жанр и объём сезона.
+    card.querySelector('.card__title').textContent = s.locked ? s.genre : s.title;
+    card.querySelector('.card__meta').textContent =
+      `${s.locked ? s.episodeCount : s.episodes.length} серий`;
+    if (!s.locked && done > 0) {
+      card.querySelector('.card__resume').textContent = `${s.episodes[done].n} серия`;
     }
+
+    const img = card.querySelector('.card__img');
+    img.addEventListener('error', () => { img.remove(); });
+    img.src = s.poster;
 
     card.addEventListener('click', () => {
       if (s.locked) Paywall.open(index, null);
@@ -197,8 +193,9 @@
         if (!sw) return;
         const urls = [];
         content.series.forEach((s) => {
-          urls.push(s.poster);
-          s.episodes.forEach((e) => urls.push(e.src));
+          if (s.poster) urls.push(s.poster);
+          // У закрытых сериалов серий нет — обходим без обращения к списку.
+          (s.episodes || []).forEach((e) => urls.push(e.src));
         });
         sw.postMessage({ type: 'warm', urls });
       };

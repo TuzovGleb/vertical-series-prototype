@@ -301,20 +301,12 @@ body { display: flex; justify-content: center; }
 .card--locked .card__fill {
   background: linear-gradient(155deg, var(--c) 0%, #101016 88%);
 }
-.card--locked .card__art {
-  position: absolute;
-  left: 10px; right: 10px; top: 40px;
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.18;
-  color: rgba(255,255,255,.92);
-  text-shadow: 0 2px 14px rgba(0,0,0,.35);
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* Обложка закрытого сериала — векторная, с названием внутри. Затемнение
+   снизу ей не нужно так же сильно, как фотопостеру. */
+.card--locked .card__shade {
+  background: linear-gradient(to top,
+              rgba(0,0,0,.86) 0%, rgba(0,0,0,.3) 30%, rgba(0,0,0,0) 52%);
 }
-.row__track .card--locked .card__art { font-size: 12.5px; top: 36px; }
 
 .card__lock {
   position: absolute;

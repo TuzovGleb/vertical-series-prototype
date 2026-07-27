@@ -7,7 +7,7 @@
    Оболочка (html/css/js/json) — network-first: правки кода всегда доезжают.
    Медиа — cache-first: файлы неизменны и тяжелы, тянуть их повторно незачем. */
 
-const CACHE = 'sujet-v2';
+const CACHE = 'sujet-v3';
 
 const SHELL = [
   './',
@@ -19,7 +19,7 @@ const SHELL = [
   'data/content.enc',
 ];
 
-const isMedia = (url) => /\.(mp4|jpg|jpeg|png|webp)$/i.test(url);
+const isMedia = (url) => /\.(mp4|jpg|jpeg|png|webp|svg)$/i.test(url);
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
