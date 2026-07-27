@@ -34,7 +34,9 @@
       <p class="tagline" id="tagline"></p>
     </header>
 
-    <div class="grid" id="grid"></div>
+    <nav class="chips" id="chips"></nav>
+    <div class="rows" id="rows"></div>
+    <div class="grid" id="grid" hidden></div>
 
     <section class="about">
       <h2>Что это</h2>
@@ -62,6 +64,7 @@
           <div class="preview__genre" id="previewGenre"></div>
           <h2 class="preview__title" id="previewTitle"></h2>
           <p class="preview__synopsis" id="previewSynopsis"></p>
+          <div class="epstrip" id="epstrip"></div>
           <button class="preview__play" id="previewPlay">
             <span class="preview__playIcon"></span>
             <span id="previewCta">Смотреть</span>
@@ -89,8 +92,47 @@
     </div>
   </section>
 
+  <!-- ═══ РАЗБЛОКИРОВКА ═══ -->
+  <section class="paywall" id="paywall" hidden>
+    <div class="paywall__bg" id="paywallBg"></div>
+    <div class="paywall__sheet">
+      <button class="paywall__close" id="paywallClose" aria-label="Закрыть"></button>
+      <div class="paywall__lock"></div>
+      <h2 class="paywall__title" id="paywallTitle"></h2>
+      <p class="paywall__note" id="paywallNote"></p>
+
+      <button class="pbtn pbtn--main" id="payAd">
+        <b>Посмотреть рекламу</b>
+        <small id="payAdNote">и смотреть дальше бесплатно</small>
+      </button>
+      <button class="pbtn" id="payAll">
+        <b>Открыть все серии</b>
+        <small id="payAllPrice"></small>
+      </button>
+      <button class="pbtn" id="payPhone">
+        <b>Оплатить со счёта телефона</b>
+        <small>без карты, в один тап</small>
+      </button>
+
+      <p class="paywall__fine">Прототип: оплата не проводится</p>
+    </div>
+  </section>
+
+  <!-- ═══ МОК РЕКЛАМЫ ═══ -->
+  <section class="admock" id="admock" hidden>
+    <div class="admock__top">
+      <span class="admock__label">Реклама</span>
+      <span class="admock__count"><b id="adCount">5</b></span>
+    </div>
+    <div class="admock__box">
+      <div class="admock__title">Здесь идёт рекламный ролик</div>
+      <div class="admock__sub">В боевой версии — инвентарь рекламной сети</div>
+    </div>
+  </section>
+
 </div>
 
+<script src="js/paywall.js"></script>
 <script src="js/player.js"></script>
 <script src="js/app.js"></script>
 </body>

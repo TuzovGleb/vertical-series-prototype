@@ -177,6 +177,7 @@ window.Player = (function () {
   function ensureSrc(i) {
     const p = panels[i];
     if (!p) return;
+    if (!Paywall.allowed(series(), i)) return;   // платные заранее не тянем
     const v = p.querySelector('video');
     if (!v.src && v.dataset.src) {
       v.src = v.dataset.src;
@@ -202,12 +203,19 @@ window.Player = (function () {
     // перемотал бы уже идущую серию на начало.
     if (i === epIndex && !force) return;
     epIndex = i;
+    paintDots();
+
+    // Упёрлись в порог бесплатных — не играем, показываем разблокировку.
+    if (!Paywall.allowed(series(), i)) {
+      pauseAll();
+      Paywall.open(seriesIndex, i, () => setActive(i, true));
+      return;
+    }
 
     // текущая и две соседние — заранее, остальные лениво
     [i - 1, i, i + 1, i + 2].forEach(ensureSrc);
 
     pauseAll(currentVideo());
-    paintDots();
     restart();
 
     const id = series().id;
@@ -294,7 +302,25 @@ window.Player = (function () {
       ? `Продолжить с ${s.episodes[done].n} серии`
       : 'Смотреть';
     el('previewTimer').style.width = '0%';
+    paintEpStrip(s);
     preview.hidden = false;
+  }
+
+  /* Полоска серий — как в каталогах конкурентов: сразу видно объём сезона
+     и где начинается платная часть. */
+  function paintEpStrip(s) {
+    const strip = el('epstrip');
+    if (!s.episodes) { strip.hidden = true; return; }
+    const seen = state.progress[s.id] || 0;
+    strip.innerHTML = '';
+    s.episodes.forEach((ep, i) => {
+      const cell = document.createElement('i');
+      const paid = !Paywall.allowed(s, i);
+      cell.className = paid ? 'paid' : (i <= seen ? 'seen' : '');
+      cell.innerHTML = `<span>${ep.n}</span>`;
+      strip.appendChild(cell);
+    });
+    strip.hidden = false;
   }
 
   /* Отсчёт до автостарта: полоска едет CSS-переходом, а решение о старте
@@ -385,7 +411,7 @@ window.Player = (function () {
         if (axis === 'x') {
           dragging = true;
           feed.style.touchAction = 'none';   // дальше вертикаль не вмешивается
-          if (!fromPreview) fillPreview(wrap(seriesIndex + (dx < 0 ? 1 : -1)));
+          if (!fromPreview) fillPreview(neighbour(seriesIndex, dx < 0 ? 1 : -1));
         }
       }
 
@@ -399,7 +425,8 @@ window.Player = (function () {
       }
 
       // палец сменил направление — перекладываем превью на другую сторону
-      if (previewTarget !== wrap(seriesIndex + dir)) fillPreview(wrap(seriesIndex + dir));
+      const want = neighbour(seriesIndex, dir);
+      if (previewTarget !== want) fillPreview(want);
       if (preview.hidden) return;
       feed.style.transform = `translateX(${dx}px)`;
       preview.style.transform = `translateX(${dx + dir * w}px)`;
@@ -449,7 +476,17 @@ window.Player = (function () {
     });
   }
 
-  const wrap = (i) => (i + content.series.length) % content.series.length;
+  /* Соседний сериал ищется только среди тех, у кого есть видео: каталог
+     содержит и закрытые заглушки, свайп на них уронил бы ленту. */
+  function neighbour(from, dir) {
+    const list = content.series.reduce((acc, s, i) => {
+      if (!s.locked) acc.push(i);
+      return acc;
+    }, []);
+    if (!list.length) return from;
+    const at = list.indexOf(from);
+    return list[((at < 0 ? 0 : at) + dir + list.length) % list.length];
+  }
 
   /** Переход к соседнему сериалу без жеста (конец сериала, клавиатура). */
   function goSeries(dir) {
@@ -459,7 +496,7 @@ window.Player = (function () {
     // соседа от previewTarget, а не от seriesIndex: тот ещё не сменился, и
     // листание топталось бы между двумя одними и теми же сериалами.
     if (previewTarget !== null) {
-      const next = wrap(previewTarget + dir);
+      const next = neighbour(previewTarget, dir);
       preview.style.transition = 'transform .15s ease-in';
       preview.style.transform = `translateX(${-dir * w * 0.4}px)`;
       setTimeout(() => {
@@ -474,7 +511,7 @@ window.Player = (function () {
       return;
     }
 
-    fillPreview(wrap(seriesIndex + dir));
+    fillPreview(neighbour(seriesIndex, dir));
     preview.style.transition = 'none';
     preview.style.transform = `translateX(${dir * w}px)`;
     void preview.offsetWidth;      // reflow: разводит стартовое и конечное состояние

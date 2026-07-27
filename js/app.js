@@ -6,6 +6,8 @@
 
   const state = {
     progress: {},     // id сериала → максимальный доиденный индекс серии
+    unlocked: {},     // id сериала → максимальный индекс, открытый за рекламу
+    allAccess: false, // куплен полный доступ
     audio: false,
     // Живёт только в памяти вкладки, в localStorage не уходит: иначе телефон,
     // на котором прототип уже открывали при подготовке, показал бы ленту без
@@ -13,13 +15,17 @@
     hintSeen: false,
     save() {
       try {
-        localStorage.setItem(STORE, JSON.stringify({ progress: this.progress }));
+        localStorage.setItem(STORE, JSON.stringify({
+          progress: this.progress, unlocked: this.unlocked, allAccess: this.allAccess,
+        }));
       } catch (e) { /* приватный режим — переживём */ }
     },
     load() {
       try {
         const raw = JSON.parse(localStorage.getItem(STORE) || '{}');
         this.progress = raw.progress || {};
+        this.unlocked = raw.unlocked || {};
+        this.allAccess = !!raw.allAccess;
       } catch (e) { /* ничего страшного */ }
     },
   };
@@ -28,48 +34,133 @@
 
   /* ───────────────────────── витрина ───────────────────────── */
 
+  let activeTrope = null;
+
+  /* Витрина устроена как у ReelShort и DramaBox: рубрики по тропам и ряды
+     подборок. Ни у того, ни у другого нет блоков «о сервисе» и преимуществ —
+     каталог и есть главная страница. */
+
+  const isOpen = (s) => !s.locked;
+
+  function makeCard(s, index) {
+    const done = state.progress[s.id] || 0;
+    const card = document.createElement('button');
+    card.className = 'card' + (s.locked ? ' card--locked' : '');
+    card.style.setProperty('--c', s.accent);
+
+    card.innerHTML = `
+      <div class="card__fill"></div>
+      ${s.locked ? '<div class="card__art"></div>'
+                 : '<img class="card__img" alt="" loading="lazy">'}
+      <div class="card__shade"></div>
+      <div class="card__badge"></div>
+      ${s.locked ? '<div class="card__lock"></div>'
+                 : (done > 0 ? '<div class="card__resume"></div>' : '')}
+      <div class="card__body">
+        <div class="card__title"></div>
+        <div class="card__meta"></div>
+      </div>`;
+
+    card.querySelector('.card__badge').textContent = s.trope || s.genre;
+
+    if (s.locked) {
+      // Своего видео у закрытых нет, поэтому обложка — акцентная заливка
+      // с названием; внизу остаётся только жанр и объём.
+      card.querySelector('.card__art').textContent = s.title;
+      card.querySelector('.card__title').textContent = s.genre;
+      card.querySelector('.card__meta').textContent = `${s.episodeCount} серий`;
+    } else {
+      card.querySelector('.card__title').textContent = s.title;
+      card.querySelector('.card__meta').textContent = `${s.episodes.length} серий`;
+      if (done > 0) card.querySelector('.card__resume').textContent = `${s.episodes[done].n} серия`;
+
+      const img = card.querySelector('.card__img');
+      img.addEventListener('error', () => { img.remove(); });
+      img.src = s.poster;
+    }
+
+    card.addEventListener('click', () => {
+      if (s.locked) Paywall.open(index, null);
+      else openSeries(index);
+    });
+    return card;
+  }
+
+  function pickSeries(kind) {
+    const all = content.series.map((s, i) => ({ s, i }));
+    const locked = all.filter((x) => x.s.locked);
+    if (kind === 'open')   return all.filter((x) => isOpen(x.s));
+    if (kind === 'fresh')  return locked.slice(0, 6);
+    if (kind === 'locked') return locked.slice(6);
+    return all;
+  }
+
+  function renderChips() {
+    const chips = document.getElementById('chips');
+    const tropes = [];
+    content.series.forEach((s) => {
+      if (s.trope && tropes.indexOf(s.trope) === -1) tropes.push(s.trope);
+    });
+
+    chips.innerHTML = '';
+    [null].concat(tropes).forEach((t) => {
+      const b = document.createElement('button');
+      b.className = 'chip' + (activeTrope === t ? ' on' : '');
+      b.textContent = t || 'Все';
+      b.addEventListener('click', () => {
+        activeTrope = t;
+        renderCatalog();
+        document.getElementById('catalog').scrollTop = 0;
+      });
+      chips.appendChild(b);
+    });
+  }
+
+  function renderRows() {
+    const rows = document.getElementById('rows');
+    const grid = document.getElementById('grid');
+    rows.innerHTML = '';
+    grid.innerHTML = '';
+
+    // Выбрана рубрика — показываем плоскую сетку, иначе ряды подборок.
+    if (activeTrope) {
+      rows.hidden = true;
+      grid.hidden = false;
+      content.series.forEach((s, i) => {
+        if (s.trope === activeTrope) grid.appendChild(makeCard(s, i));
+      });
+      return;
+    }
+
+    rows.hidden = false;
+    grid.hidden = true;
+    (content.service.rows || []).forEach((def) => {
+      const items = pickSeries(def.pick);
+      if (!items.length) return;
+      const row = document.createElement('section');
+      row.className = 'row';
+      row.innerHTML = `
+        <div class="row__head">
+          <div class="row__title"></div>
+          <div class="row__count"></div>
+        </div>
+        <div class="row__track"></div>`;
+      row.querySelector('.row__title').textContent = def.title;
+      row.querySelector('.row__count').textContent = `${items.length}`;
+      const track = row.querySelector('.row__track');
+      items.forEach((x) => track.appendChild(makeCard(x.s, x.i)));
+      rows.appendChild(row);
+    });
+  }
+
   function renderCatalog() {
     document.getElementById('brand').textContent = content.service.name;
     document.getElementById('tagline').textContent = content.service.tagline;
     document.getElementById('about').textContent = content.service.about;
     document.getElementById('hintV').textContent = content.service.hint.vertical;
     document.getElementById('hintH').textContent = content.service.hint.horizontal;
-
-    const grid = document.getElementById('grid');
-    grid.innerHTML = '';
-
-    content.series.forEach((s, i) => {
-      const done = state.progress[s.id] || 0;
-      const card = document.createElement('button');
-      card.className = 'card';
-      card.style.setProperty('--c', s.accent);
-      card.innerHTML = `
-        <div class="card__fill"></div>
-        <img class="card__img" alt="" loading="lazy">
-        <div class="card__shade"></div>
-        <div class="card__badge"></div>
-        ${done > 0 ? '<div class="card__resume"></div>' : ''}
-        <div class="card__body">
-          <div class="card__title"></div>
-          <div class="card__meta"></div>
-        </div>`;
-
-      card.querySelector('.card__badge').textContent = s.genre;
-      card.querySelector('.card__title').textContent = s.title;
-      card.querySelector('.card__meta').textContent =
-        `${s.episodes.length} серий · по минуте`;
-      if (done > 0) {
-        card.querySelector('.card__resume').textContent = `${s.episodes[done].n} серия`;
-      }
-
-      // Постера может ещё не быть — тогда остаётся акцентная заливка
-      const img = card.querySelector('.card__img');
-      img.addEventListener('error', () => { img.remove(); });
-      img.src = s.poster;
-
-      card.addEventListener('click', () => openSeries(i));
-      grid.appendChild(card);
-    });
+    renderChips();
+    renderRows();
   }
 
   /* ───────────────────────── переходы ───────────────────────── */
@@ -158,6 +249,7 @@
     document.getElementById('catalog').hidden = false;
     document.title = `${content.service.name} — вертикальные мини-сериалы`;
     renderCatalog();
+    Paywall.init({ content, state });
     Player.init({ content, state, onExit: backToCatalog });
     setupOffline();
   }
