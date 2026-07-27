@@ -508,12 +508,19 @@ body { display: flex; justify-content: center; }
   background-size: cover;
   background-position: center;
 }
+/* Затемнение держим там, где лежит текст, и быстро отпускаем выше.
+   Прежний плавный градиент тушил кадр по всей высоте — постер читался
+   не картинкой, а подложкой. */
 .preview__bg::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(to top,
-              rgba(0,0,0,.96) 4%, rgba(0,0,0,.55) 42%, rgba(0,0,0,.15) 100%);
+              rgba(0,0,0,.97) 0%,
+              rgba(0,0,0,.93) 36%,
+              rgba(0,0,0,.5)  54%,
+              rgba(0,0,0,.16) 76%,
+              rgba(0,0,0,.04) 100%);
 }
 
 .preview__body {
@@ -536,11 +543,17 @@ body { display: flex; justify-content: center; }
 
 .preview__title { font-size: 29px; font-weight: 800; line-height: 1.12; }
 
+/* Три строки — примерно столько успеваешь прочесть за те секунды, что
+   карточка держится до автостарта. Полный синопсис на ней не дочитывался. */
 .preview__synopsis {
   margin-top: 11px;
   font-size: 14.5px;
   line-height: 1.5;
   color: #cdcdd8;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .preview__play {
