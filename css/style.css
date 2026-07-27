@@ -301,12 +301,6 @@ body { display: flex; justify-content: center; }
 .card--locked .card__fill {
   background: linear-gradient(155deg, var(--c) 0%, #101016 88%);
 }
-/* Обложка закрытого сериала — векторная, с названием внутри. Затемнение
-   снизу ей не нужно так же сильно, как фотопостеру. */
-.card--locked .card__shade {
-  background: linear-gradient(to top,
-              rgba(0,0,0,.86) 0%, rgba(0,0,0,.3) 30%, rgba(0,0,0,0) 52%);
-}
 
 .card__lock {
   position: absolute;

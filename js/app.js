@@ -62,9 +62,7 @@
 
     card.querySelector('.card__badge').textContent = s.trope || s.genre;
 
-    // У закрытых название набрано прямо в обложке — как на настоящем постере,
-    // поэтому внизу карточки остаётся жанр и объём сезона.
-    card.querySelector('.card__title').textContent = s.locked ? s.genre : s.title;
+    card.querySelector('.card__title').textContent = s.title;
     card.querySelector('.card__meta').textContent =
       `${s.locked ? s.episodeCount : s.episodes.length} серий`;
     if (!s.locked && done > 0) {
