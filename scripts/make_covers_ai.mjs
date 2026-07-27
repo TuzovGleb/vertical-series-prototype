@@ -23,23 +23,28 @@ const W = 720, H = 1176;
 const MIN_BYTES = 20_000;
 const TRIES = 3;
 
-/* Сцена под каждый сюжет. Людей держим на среднем плане или силуэтом:
-   лица у бесплатных моделей выходят неровно, а пустая фактурная сцена
-   для постера драмы работает не хуже. */
+/* Сцена под каждый сюжет.
+
+   На семи из тринадцати в кадре человек — постеру драмы нужна фигура.
+   Дистанция везде общая, не портретная: проверено на практике — на среднем
+   плане лица выходят чисто, а стоит подойти ближе, глаза и рот у бесплатной
+   модели расползаются. Отсюда «full body», «wide shot», «seen from a
+   distance» в каждом таком промпте. Остальные шесть держим на фактуре:
+   там сцена рассказывает историю сама. */
 const PROMPTS = {
-  p01: 'unfinished concrete high-rise construction site at golden hour, scaffolding and tower crane, dust in the air, worker silhouette in hard hat far away, cinematic film still, moody warm light, shallow depth of field',
+  p01: 'full body shot of a young russian woman in a hard hat and dusty work jacket standing on a construction site at golden hour, seen from a distance, unfinished concrete high-rise and tower crane behind her, dust in the air, 35mm film still, wide shot, natural skin',
   p02: 'arctic oilfield camp at night in a blizzard, orange floodlight, container housing on stilts, deep snow, lonely figure walking away, cinematic film still, cold blue and amber',
-  p03: 'dim soviet dormitory corridor at night, one door slightly ajar with warm light spilling onto worn linoleum, painted walls, cinematic film still, quiet and unsettling',
+  p03: 'full body shot of a young russian woman standing at the far end of a dim dormitory corridor at night holding a key, seen from a distance, a door left ajar with warm light spilling onto worn linoleum, 35mm film still, wide shot, quiet and unsettling',
   p04: 'small russian village grocery store at dusk, lit shop window, wooden houses, dirt road, birch trees, cinematic film still, warm light against blue evening',
   p05: 'abandoned soviet sanatorium in thick morning fog, colonnade and empty swimming pool, wet tiles, cinematic film still, eerie pale light',
   p06: 'old russian wooden house with carved window frames, overgrown autumn garden, fallen leaves, warm evening light in the windows, cinematic film still',
-  p07: 'hospital emergency corridor at night, empty gurney, cold fluorescent ceiling lights, glossy floor reflections, motion blur, cinematic film still, tense',
-  p08: 'car repair garage at night, sedan raised on a lift, bright work lamp, tools and oil stains, open roller door to a wet street, cinematic film still',
+  p07: 'tired young female doctor in scrubs standing in a hospital emergency corridor at night, cold fluorescent light overhead, gurney behind her, 35mm film still, medium shot, natural skin, tense',
+  p08: 'full body shot of a mechanic in overalls standing in a car repair garage at night beside a sedan raised on a lift, seen from a distance, bright work lamp, open roller door to a wet street, 35mm film still, wide shot',
   p09: 'russian factory gate at night in the rain, headlights cutting through, brick industrial buildings, 1990s mood, cinematic film still, noir',
-  p10: 'empty russian school classroom at dusk, rows of desks, tall windows with snow outside, chalkboard, cinematic film still, melancholic blue light',
+  p10: 'full body shot of a young russian teacher standing by the tall windows of an empty classroom at dusk, seen from across the room, snow falling outside, rows of desks and a chalkboard, 35mm film still, wide shot, melancholic',
   p11: 'night train compartment interior, window with passing city lights, two tea glasses in metal holders on the table, cinematic film still, intimate warm lamp',
-  p12: 'old hotel corridor with a long red carpet runner, floor attendant desk with a board of room keys, warm table lamp, cinematic film still',
-  p13: 'two plain wedding rings resting on a stack of documents, kitchen table in morning light, calendar and a duty roster on the fridge behind, cinematic film still, warm',
+  p12: 'middle-aged russian woman sitting at a hotel floor attendant desk seen from down the corridor, board of room keys on the wall behind her, warm table lamp, long red carpet runner, 35mm film still, wide shot',
+  p13: 'a man and a woman sitting apart at a small kitchen table in morning light, documents and two plain rings on the table between them, awkward distance, 35mm film still, medium shot, natural skin',
 };
 
 const NEGATIVE = 'no text, no letters, no watermark, no logo, no caption';
